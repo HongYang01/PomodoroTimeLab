@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro Time Lab</title>
+    <style>
+        :root {
+            --primary-color: #5e60ce;
+            --secondary-color: #48bfe3;
+            --background-dark: #121212;
+            --background-light: #f5f5f5;
+            --text-dark: #e0e0e0;
+            --text-light: #333333;
+            --progress-color: #ff9f1c;
+            --checkpoint-color: #64dfdf;
+            --track-color-dark: #2d2d2d;
+            --track-color-light: #e0e0e0;
+            --button-hover-dark: #3a3a3a;
+            --button-hover-light: #d8d8d8;
+        }
+
+        * {
+            -webkit-user-drag: none;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: var(--background-dark);
+            color: var(--text-dark);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body.light-mode {
+            background-color: var(--background-light);
+            color: var(--text-light);
+        }
+
+        .container {
+            position: relative;
+            width: 45%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 90px;
+        }
+
+        .header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-title>h1 {
+            margin: 0;
+        }
+
+        .header-title>p {
+            margin: 0;
+        }
+
+        .header-button {
+            display: flex;
+            flex-direction: row;
+        }
+
+        .toggle-mode,
+        .expand-fullscreen {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+
+        .toggle-mode:hover,
+        .expand-fullscreen:hover {
+            background-color: var(--button-hover-dark);
+        }
+
+        body.light-mode .toggle-mode:hover .expand-fullscreen:hover {
+            background-color: var(--button-hover-light);
+        }
+
+        .timer-display {
+            /* font-size: 5rem;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 2px;
+            margin: 20px 0;
+            font-variant-numeric: tabular-nums; */
+
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            font-size: 5rem;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 2px;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            /* Remove margin */
+            font-variant-numeric: tabular-nums;
+
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+        }
+
+        .btn {
+            padding: 12px 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: 2px solid var(--primary-color);
+            border-radius: 30px;
+            background: transparent;
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 120px;
+            text-align: center;
+            outline: none;
+            user-select: none;
+        }
+
+        body.light-mode .btn {
+            color: var(--text-light);
+        }
+
+        .btn:hover,
+        .btn:focus {
+            background-color: rgba(94, 96, 206, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn.primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn.primary:hover {
+            background-color: #4849a3;
+        }
+
+        .track-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            user-select: none;
+        }
+
+        .track {
+            fill: none;
+            stroke: var(--track-color-dark);
+            stroke-width: 9;
+            stroke-linecap: round;
+        }
+
+        body.light-mode .track {
+            stroke: var(--track-color-light);
+        }
+
+        .progress {
+            fill: none;
+            stroke: var(--progress-color);
+            stroke-width: 9;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+
+        .checkpoint {
+            fill: var(--checkpoint-color);
+            cursor: pointer;
+            transition: filter 1s ease;
+        }
+
+        .checkpoint:hover {
+            filter: brightness(1.2);
+        }
+
+        .session-label {
+            font-size: 0.7rem;
+            fill: var(--text-dark);
+            text-anchor: middle;
+            pointer-events: none;
+        }
+
+        body.light-mode .session-label {
+            fill: var(--text-light);
+        }
+
+        .info-container {
+            text-align: center;
+        }
+
+        .cycle-counter {
+            font-size: 1.2rem;
+        }
+
+        .clear-btn {
+            background: none;
+            border: none;
+            color: var(--secondary-color);
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 5px;
+        }
+
+        .clear-btn:hover {
+            opacity: 0.8;
+        }
+
+        /* Dialog styles */
+        .dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .dialog-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .dialog {
+            background-color: var(--background-dark);
+            border-radius: 12px;
+            padding: 25px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            transform: translateY(-20px);
+            transition: transform 0.3s;
+        }
+
+        body.light-mode .dialog {
+            background-color: var(--background-light);
+        }
+
+        .dialog-overlay.active .dialog {
+            transform: translateY(0);
+        }
+
+        .dialog-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .dialog-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        /* Responsive styles */
+        @media (max-width: 700px) {
+            .timer-display {
+                font-size: 3.5rem;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 250px;
+            }
+
+            .track-container {
+                height: 300px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-items: center;
+            }
+
+            .header-button {
+                flex-direction: column;
+            }
+        }
+
+        /* Reduced motion preferences */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                transition-duration: 0.001s ease !important;
+                animation-duration: 0.001s ease !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-title">
+                <h1>Pomodoro Time Lab</h1>
+                <p>Developed by YangDev</p>
+            </div>
+            <div class="header-button">
+                <button class="toggle-mode" aria-label="Toggle dark/light mode">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M12 18C15.3137 18 18 15.3137 18 12C18 8.68629 15.3137 6 12 6C8.68629 6 6 8.68629 6 12C6 15.3137 8.68629 18 12 18Z"
+                            stroke="#e0e0e0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M12 2V4" stroke="#e0e0e0" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M12 20V22" stroke="#e0e0e0" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M4.93 4.93L6.34 6.34" stroke="#e0e0e0" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M17.66 17.66L19.07 19.07" stroke="#e0e0e0" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M2 12H4" stroke="#e0e0e0" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M20 12H22" stroke="#e0e0e0" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M6.34 17.66L4.93 19.07" stroke="#e0e0e0" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M19.07 4.93L17.66 6.34" stroke="#e0e0e0" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+                <button class="expand-fullscreen" aria-label="Expand to full screen">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9,21 L3,21 L3,15 M21,15 L21,21 L15,21 M15,3 L21,3 L21,9 M3,9 L3,3 L9,3"
+                            stroke="#e0e0e0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="track-container">
+            <div class="timer-display" id="timer">00:00:00</div>
+            <svg width="100%" height="80%" viewBox="-54 -42 600 252" preserveAspectRatio="xMidYMid meet">
+                <!-- Race track path -->
+                <path id="track" class="track"
+                    d="M 23.212 86.826 C 23.212 43.413 47.764 0 98.326 0 L 401.698 0 C 452.26 0 474.907 43.413 474.907 86.826 C 474.907 130.238 452.26 173.651 401.698 173.651 L 98.326 173.651 C 47.764 173.651 23.212 130.238 23.212 86.826 Z">
+                </path>
+
+                <!-- Progress path (initially not visible, same as track) -->
+                <path id="progress" class="progress"
+                    d="M 23.212 86.826 C 23.212 43.413 47.764 0 98.326 0 L 401.698 0 C 452.26 0 474.907 43.413 474.907 86.826 C 474.907 130.238 452.26 173.651 401.698 173.651 L 98.326 173.651 C 47.764 173.651 23.212 130.238 23.212 86.826 Z">
+                </path>
+
+                <!-- Checkpoints - positions will be set dynamically by JS -->
+                <circle id="checkpoint1" class="checkpoint" cx="50" cy="100" r="6" data-session="1"></circle>
+                <circle id="checkpoint2" class="checkpoint" cx="50" cy="100" r="6" data-session="2"></circle>
+                <circle id="checkpoint3" class="checkpoint" cx="50" cy="100" r="6" data-session="3"></circle>
+                <circle id="checkpoint4" class="checkpoint" cx="50" cy="100" r="6" data-session="4"></circle>
+                <circle id="checkpoint5" class="checkpoint" cx="50" cy="100" r="6" data-session="5"></circle>
+                <circle id="checkpoint6" class="checkpoint" cx="50" cy="100" r="6" data-session="6"></circle>
+                <circle id="checkpoint7" class="checkpoint" cx="50" cy="100" r="6" data-session="7"></circle>
+
+                <!-- Session labels - positions will be set dynamically by JS -->
+                <text id="label1" x="125" y="10" class="session-label"></text>
+                <text id="label2" x="300" y="10" class="session-label"></text>
+                <text id="label3" x="500" y="10" class="session-label"></text>
+                <text id="label4" x="675" y="10" class="session-label"></text>
+                <text id="label5" x="780" y="100" class="session-label"></text>
+                <text id="label6" x="675" y="195" class="session-label"></text>
+                <text id="label7" x="500" y="195" class="session-label"></text>
+            </svg>
+        </div>
+
+        <div class="controls">
+            <button class="btn" id="stopBtn">Stop</button>
+            <button class="btn primary" id="startBtn">Start</button>
+        </div>
+
+        <div class="info-container">
+            <div class="cycle-counter">Cycles Completed: <span id="cycleCounter">0</span></div>
+            <button class="clear-btn" id="clearBtn">Clear</button>
+        </div>
+    </div>
+
+    <!-- Confirmation dialog -->
+    <div class="dialog-overlay" id="dialogOverlay">
+        <div class="dialog" role="dialog" aria-labelledby="dialogTitle">
+            <div class="dialog-title" id="dialogTitle">Confirmation</div>
+            <div class="dialog-message" id="dialogMessage"></div>
+            <div class="dialog-buttons">
+                <button class="btn" id="dialogCancelBtn">Cancel</button>
+                <button class="btn primary" id="dialogConfirmBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const timerDisplay = document.getElementById('timer');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const cycleCounter = document.getElementById('cycleCounter');
+        const toggleModeBtn = document.querySelector('.toggle-mode');
+        const expandFullscreenBtn = document.querySelector('.expand-fullscreen');
+        const progressPath = document.getElementById('progress');
+        const track = document.getElementById('track');
+        const checkpoints = document.querySelectorAll('.checkpoint');
+        const sessionLabels = document.querySelectorAll('.session-label');
+        const dialogOverlay = document.getElementById('dialogOverlay');
+        const dialogMessage = document.getElementById('dialogMessage');
+        const dialogConfirmBtn = document.getElementById('dialogConfirmBtn');
+        const dialogCancelBtn = document.getElementById('dialogCancelBtn');
+
+        // Pomodoro session configuration with durations in milliseconds
+        const sessionConfig = [
+            { type: 'work', duration: .25 * 60 * 1000, label: 'Focus' },      // 25-minute work
+            { type: 'shortBreak', duration: .05 * 60 * 1000, label: 'Break' },  // 5-minute break
+            { type: 'work', duration: .25 * 60 * 1000, label: 'Focus' },      // 25-minute work
+            { type: 'shortBreak', duration: .05 * 60 * 1000, label: 'Break' },  // 5-minute break
+            { type: 'work', duration: .25 * 60 * 1000, label: 'Focus' },      // 25-minute work
+            { type: 'longBreak', duration: .30 * 60 * 1000, label: 'Long Break' }  // 30-minute long break
+        ];
+
+        // Timer variables
+        let isFocusing = sessionConfig[0].type === 'work';
+        let currentSessionIndex = 0;
+        let timerInterval = null;
+        let remainingTime = sessionConfig[0].duration;
+        let isTimerRunning = false;
+        let cycles = 0;
+        let trackLength = 0;
+        let totalCycleDuration = 0;
+        let animationFrameId; // To store the requestAnimationFrame ID
+
+        // Initialize application
+        function init() {
+            // Calculate total cycle duration
+            totalCycleDuration = sessionConfig.reduce((total, session) => total + session.duration, 0);
+            // Load cycles from cookie
+            loadCycles();
+            // Calculate track length for progress tracking
+            const trackPath = document.getElementById('track');
+            trackLength = trackPath.getTotalLength();
+
+            // Set initial stroke-dasharray and stroke-dashoffset
+            progressPath.style.strokeDasharray = trackLength;
+            progressPath.style.strokeDashoffset = trackLength;
+
+            // Position checkpoints and labels proportionally based on time durations
+            positionCheckpointsProportionally();
+            // Update timer display
+            updateTimerDisplay();
+            // Set up event listeners
+            setupEventListeners();
+            // Initialize UI state
+            updateUIState();
+        }
+
+        // Position checkpoints proportionally to session durations
+        function positionCheckpointsProportionally() {
+            // Calculate cumulative durations for positioning
+            let cumulativeDuration = 0;
+            let cumulativePositions = [0]; // Start with position 0
+
+            // Calculate the cumulative positions based on durations
+            for (const session of sessionConfig) {
+                cumulativeDuration += session.duration;
+                cumulativePositions.push(cumulativeDuration / totalCycleDuration);
+            }
+
+            // Position the checkpoints based on cumulative durations
+            for (let i = 0; i < checkpoints.length; i++) {
+                const position = i < cumulativePositions.length ? cumulativePositions[i] : 1;
+                const point = getPointOnPath(position);
+
+                // Set checkpoint position
+                checkpoints[i].setAttribute('cx', point.x);
+                checkpoints[i].setAttribute('cy', point.y);
+
+                // Update label position
+                const labelId = `label${i + 1}`;
+                const label = document.getElementById(labelId);
+
+                if (label) {
+                    // Position the label offset from the checkpoint
+                    const labelOffset = 21; // Offset distance
+                    let labelX = point.x;
+                    let labelY = point.y;
+
+                    // Calculate label position based on which part of the track it's on
+                    if (point.y < 50) { // Top of track
+                        labelY = point.y - labelOffset;
+                    } else if (point.y > 150) { // Bottom of track
+                        labelY = point.y + labelOffset + 9;
+                    } else if (point.x < 400) { // Left side
+                        labelX = point.x - labelOffset - 12;
+                    } else { // Right side
+                        labelX = point.x + labelOffset + 12;
+                    }
+
+                    label.setAttribute('x', labelX);
+                    label.setAttribute('y', labelY);
+
+                    // Set label text based on session config
+                    if (i < sessionConfig.length) {
+                        label.textContent = sessionConfig[i].label;
+                    } else if (i === 6) { // Last label (beginning of next cycle)
+                        //label.textContent = 'Start';
+                    }
+                }
+            }
+        }
+
+        // Get point coordinates on the path based on percentage (0-1)
+        function getPointOnPath(percentage) {
+            const point = track.getPointAtLength(trackLength * percentage);
+            return { x: point.x, y: point.y };
+        }
+
+        // Set up event listeners for all interactive elements
+        function setupEventListeners() {
+            startBtn.addEventListener('click', startTimer);
+            stopBtn.addEventListener('click', () => {
+
+                if (!isFocusing) {
+                    return;
+                }
+
+                if (isTimerRunning) {
+                    showDialog('Are you sure you want to stop?', () => {
+                        stopTimer();
+                        resetCurrentSession();
+                        //stopBtn.textContent = 'Restart';
+                    });
+                } else {
+                    // Restart functionality
+                    resetCurrentSession();
+                    updateTimerDisplay();
+                    updateProgress();
+                    stopBtn.textContent = 'Stop';
+                }
+            });
+
+            clearBtn.addEventListener('click', () => {
+                showDialog('Are you sure you want to clear cycle count?', () => {
+                    cycles = 0;
+                    updateCycleCounter();
+                    saveCycles();
+                });
+            });
+
+            toggleModeBtn.addEventListener('click', toggleDarkLightMode);
+
+            // Add click handlers to checkpoints
+            checkpoints.forEach(checkpoint => {
+                checkpoint.addEventListener('click', () => {
+                    const sessionDataIndex = parseInt(checkpoint.getAttribute('data-session')) - 1;
+
+                    // Only allow restarting current session
+                    if (sessionDataIndex === currentSessionIndex && isFocusing) {
+                        showDialog('Are you sure you want to restart this session?', () => {
+                            resetCurrentSession();
+                            updateTimerDisplay();
+                            updateProgress();
+                        });
+                    }
+                });
+            });
+
+            // Dialog buttons
+            dialogCancelBtn.addEventListener('click', hideDialog);
+            dialogConfirmBtn.addEventListener('click', () => {
+                if (typeof dialogConfirmBtn.confirmAction === 'function') {
+                    dialogConfirmBtn.confirmAction();
+                }
+                hideDialog();
+            });
+        }
+
+        // Start the timer
+        function startTimer() {
+            if (isTimerRunning) return;
+            isTimerRunning = true;
+            startBtn.disabled = true;
+
+            let startTime = Date.now();
+            let initialTime = remainingTime;
+
+            function update() {
+                const elapsed = Date.now() - startTime;
+                remainingTime = Math.max(0, initialTime - elapsed);
+
+                updateTimerDisplay();
+                updateProgress();
+
+                if (remainingTime <= 0) {
+                    sessionComplete();
+                } else {
+                    animationFrameId = requestAnimationFrame(update);
+                }
+            }
+
+            animationFrameId = requestAnimationFrame(update); // Start the animation loop
+
+            updateUIState();
+        }
+
+        // Stop the timer
+        function stopTimer() {
+            if (!isTimerRunning) return;
+            cancelAnimationFrame(animationFrameId); // Stop the animation loop
+            isTimerRunning = false;
+            startBtn.disabled = false;
+
+            updateUIState();
+        }
+
+        // Reset current session time
+        function resetCurrentSession() {
+            stopTimer();
+            remainingTime = sessionConfig[currentSessionIndex].duration;
+            isFocusing = sessionConfig[currentSessionIndex].type === 'work';
+            updateTimerDisplay();
+            updateProgress();
+        }
+
+        // Flash screen on cycle completion by toggle quickly between light and dark mode using toggleDarkLightMode() 3 times
+        function flashScreen() {
+            let flashCount = 3;
+            let flashInterval = 500
+            for (let i = 0; i < flashCount * 2; i++) {
+                setTimeout(toggleDarkLightMode, i * flashInterval);
+            }
+        }
+        // Handle session completion
+        function sessionComplete() {
+            stopTimer();
+
+            // Play notification sound or alert user that session is complete
+            // This would be added here (e.g., a beep or notification)
+
+            // Move to next session
+            currentSessionIndex = (currentSessionIndex + 1) % sessionConfig.length;
+
+            // If we completed a full cycle
+            if (currentSessionIndex === 0) {
+                cycles++;
+                updateCycleCounter();
+                saveCycles();
+            }
+
+            // Reset timer for next session
+            remainingTime = sessionConfig[currentSessionIndex].duration;
+            isFocusing = sessionConfig[currentSessionIndex].type === 'work';
+
+            // Update UI
+            updateTimerDisplay();
+            updateProgress();
+            updateUIState();
+            flashScreen();
+        }
+
+        // Update the timer display in MM:SS:MS format
+        function updateTimerDisplay() {
+            const minutes = Math.floor(remainingTime / 60000);
+            const seconds = Math.floor((remainingTime % 60000) / 1000);
+            const milliseconds = Math.floor((remainingTime % 1000) / 10);
+
+            if (isFocusing) {
+                timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            } else {
+                timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}:${String(milliseconds).padStart(2, '0')}`;
+            }
+
+        }
+
+        // Update progress on the race track
+        function updateProgress() {
+            // Calculate how far we've progressed in the current session
+            const sessionDuration = sessionConfig[currentSessionIndex].duration;
+            const sessionProgress = 1 - (remainingTime / sessionDuration);
+
+            // Calculate the total progress through the entire cycle
+            let progressBeforeCurrentSession = 0;
+            for (let i = 0; i < currentSessionIndex; i++) {
+                progressBeforeCurrentSession += sessionConfig[i].duration / totalCycleDuration;
+            }
+
+            // Current session's contribution to total progress
+            const currentSessionContribution = (sessionConfig[currentSessionIndex].duration / totalCycleDuration) * sessionProgress;
+
+            // Total progress through the cycle (0 to 1)
+            const totalProgress = progressBeforeCurrentSession + currentSessionContribution;
+
+            // Update the progress bar
+            const offset = trackLength - (totalProgress * trackLength);
+            progressPath.style.strokeDashoffset = offset;
+
+            // Highlight current checkpoint
+            checkpoints.forEach((checkpoint, index) => {
+                if (index === currentSessionIndex) {
+                    checkpoint.setAttribute('r', '9');
+                } else {
+                    checkpoint.setAttribute('r', '6');
+                }
+            });
+
+            updateUIState();
+        }
+
+        // Update UI based on current state
+        function updateUIState() {
+            // Update button states
+            if (isTimerRunning) {
+                startBtn.disabled = true;
+                stopBtn.textContent = 'Stop';
+            } else {
+                startBtn.disabled = false;
+                if (remainingTime < sessionConfig[currentSessionIndex].duration) {
+                    stopBtn.textContent = 'Restart';
+                } else {
+                    stopBtn.textContent = 'Stop';
+                }
+            }
+
+            // Update session labels based on current index
+            const sessionType = sessionConfig[currentSessionIndex].type;
+            document.title = `${timerDisplay.textContent} - ${sessionType === 'work' ? 'Work' : 'Break'} - Pomodoro Timer`;
+            //document.title = `${sessionType === 'work' ? 'Work' : 'Break'} - Pomodoro Timer`;
+        }
+
+        // Update the cycle counter display
+        function updateCycleCounter() {
+            cycleCounter.textContent = cycles;
+        }
+
+        // Save cycles to local storage
+        function saveCycles() {
+            localStorage.setItem('cycle', cycles);
+            //document.cookie = `pomodoroCycles=${cycles};max-age=31536000;path=/`;
+        }
+
+        // Load cycles from cookie
+        function loadCycles() {
+            //const cookieMatch = document.cookie.match(/pomodoroCycles=(\d+)/);
+            const cycleNum = localStorage.getItem('cycle');
+            if (cycleNum) {
+                cycles = parseInt(cycleNum);
+                updateCycleCounter();
+            }
+        }
+
+        // Toggle between dark and light mode
+        function toggleDarkLightMode() {
+            document.body.classList.toggle('light-mode');
+
+            // Update toggle icon color
+            const iconPaths = toggleModeBtn.querySelectorAll('path');
+            const iconPaths2 = expandFullscreenBtn.querySelectorAll('path');
+            const newColor = document.body.classList.contains('light-mode') ? '#333333' : '#e0e0e0';
+
+            iconPaths.forEach(path => {
+                path.setAttribute('stroke', newColor);
+            });
+
+            iconPaths2.forEach(path => {
+                path.setAttribute('stroke', newColor);
+            });
+
+            // Save preference
+            if (document.body.classList.contains('light-mode')) {
+                localStorage.setItem('theme', 'light');
+            } else {
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Show confirmation dialog
+        function showDialog(message, confirmCallback) {
+            dialogMessage.textContent = message;
+            dialogConfirmBtn.confirmAction = confirmCallback;
+            dialogOverlay.classList.add('active');
+        }
+
+        // Hide confirmation dialog
+        function hideDialog() {
+            dialogOverlay.classList.remove('active');
+        }
+
+        // Check for saved theme preference
+        function loadThemePreference() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.body.classList.add('light-mode');
+                const iconPaths = toggleModeBtn.querySelectorAll('path');
+                iconPaths.forEach(path => {
+                    path.setAttribute('stroke', '#333333');
+                });
+                const iconPaths2 = expandFullscreenBtn.querySelectorAll('path');
+                iconPaths2.forEach(path => {
+                    path.setAttribute('stroke', '#333333');
+                });
+            }
+        }
+
+        // Fullscreen functionality
+        expandFullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen?.() ||
+                    document.documentElement.mozRequestFullScreen?.() ||
+                    document.documentElement.webkitRequestFullscreen?.() ||
+                    document.documentElement.msRequestFullscreen?.();
+            } else {
+                document.exitFullscreen?.() ||
+                    document.mozCancelFullScreen?.() ||
+                    document.webkitExitFullscreen?.() ||
+                    document.msExitFullscreen?.();
+            }
+        });
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadThemePreference();
+            init();
+        });
+    </script>
+</body>
+
+</html>
