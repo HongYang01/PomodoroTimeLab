@@ -33,10 +33,11 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
             background-color: var(--background-dark);
             color: var(--text-dark);
             transition: background-color 0.3s, color 0.3s;
+            box-sizing: border-box;
+            min-height: 100vh;
         }
 
         body.light-mode {
@@ -50,7 +51,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 90px;
+            gap: 3rem;
         }
 
         .header {
@@ -66,11 +67,18 @@
         }
 
         .header-title>h1 {
+            font-size: 1.5rem;
             margin: 0;
         }
 
         .header-title>p {
+            font-size: 0.8rem;
             margin: 0;
+        }
+
+        .header-title>p>a {
+            color: inherit;
+            text-decoration: underline;
         }
 
         .header-button {
@@ -96,7 +104,8 @@
             background-color: var(--button-hover-dark);
         }
 
-        body.light-mode .toggle-mode:hover .expand-fullscreen:hover {
+        body.light-mode .toggle-mode:hover,
+        body.light-mode .expand-fullscreen:hover {
             background-color: var(--button-hover-light);
         }
 
@@ -116,7 +125,7 @@
             font-size: 5rem;
             font-weight: 700;
             text-align: center;
-            letter-spacing: 2px;
+            letter-spacing: 0.03em;
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -172,7 +181,7 @@
         .track-container {
             position: relative;
             width: 100%;
-            height: 100%;
+            height: auto;
             margin: 0;
             user-select: none;
         }
@@ -207,7 +216,7 @@
         }
 
         .session-label {
-            font-size: 0.7rem;
+            font-size: 0.6rem;
             fill: var(--text-dark);
             text-anchor: middle;
             pointer-events: none;
@@ -222,7 +231,7 @@
         }
 
         .cycle-counter {
-            font-size: 1.2rem;
+            font-size: 1rem;
         }
 
         .clear-btn {
@@ -295,38 +304,45 @@
 
         /* Responsive styles */
         @media (max-width: 700px) {
-            .timer-display {
-                font-size: 3.5rem;
+            body {
+                width: 90%;
+                margin: 0 auto;
+                height: auto;
+                min-height: 100%;
             }
 
-            .controls {
-                flex-direction: column;
-                align-items: center;
+            .container {
+                width: 100%;
+                gap: 3rem;
+            }
+
+            .timer-display {
+                font-size: 2.9rem;
             }
 
             .btn {
                 width: 100%;
-                max-width: 250px;
+                max-width: 210px;
             }
 
             .track-container {
-                height: 300px;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-items: center;
+                height: auto;
             }
 
             .header-button {
                 flex-direction: column;
+            }
+
+            .expand-fullscreen {
+                display: none;
             }
         }
 
         /* Reduced motion preferences */
         @media (prefers-reduced-motion: reduce) {
             * {
-                transition-duration: 0.001s ease !important;
-                animation-duration: 0.001s ease !important;
+                transition-duration: 0.1s ease !important;
+                animation-duration: 0.1s ease !important;
             }
         }
     </style>
@@ -337,7 +353,8 @@
         <div class="header">
             <div class="header-title">
                 <h1>Pomodoro Time Lab</h1>
-                <p>Developed by YangDev</p>
+                <p>Developed by <a href="https://github.com/HongYang01" target="_blank"
+                        rel="noopener noreferrer">YangDev</a></p>
             </div>
             <div class="header-button">
                 <button class="toggle-mode" aria-label="Toggle dark/light mode">
@@ -518,7 +535,7 @@
 
                 if (label) {
                     // Position the label offset from the checkpoint
-                    const labelOffset = 21; // Offset distance
+                    const labelOffset = 15; // Offset distance
                     let labelX = point.x;
                     let labelY = point.y;
 
